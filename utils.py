@@ -5,7 +5,15 @@ import numpy as np
 
 # Function to simulate portfolio
 def simulate_portfolio(data, strategy_name, ticker='TSLA'):
-    
+    data = data.copy()
+
+    # Ensure standardized close column exists
+    if f'Close_{ticker}' not in data.columns:
+        if 'Close' in data.columns:
+            data[f'Close_{ticker}'] = data['Close']
+        elif f'{ticker}_Close' in data.columns:
+            data[f'Close_{ticker}'] = data[f'{ticker}_Close']
+
     initial_cash = 100
     cash = initial_cash
     position = 0
@@ -29,7 +37,6 @@ def simulate_portfolio(data, strategy_name, ticker='TSLA'):
                 position = 0
                 in_market = False
         
-        # Correct portfolio value calculation
         portfolio_value = cash + (position * price)
         portfolio_values.append(portfolio_value)
     

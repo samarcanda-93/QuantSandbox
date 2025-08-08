@@ -9,6 +9,17 @@ import utils
 ticker = 'BTC-USD' 
 data = yf.download(ticker, start="2024-06-01", end="2025-07-01", auto_adjust=False)
 
+# Normalize columns once: flatten first if MultiIndex, then ensure Close_{ticker} exists
+if isinstance(data.columns, pd.MultiIndex):
+    data.columns = [col[0] if col[1] == '' else f"{col[0]}_{col[1]}" for col in data.columns]
+
+if f'Close_{ticker}' not in data.columns:
+    if 'Close' in data.columns:
+        # 'Close' is a Series after flatten or a simple column; ensure we take a Series
+        data[f'Close_{ticker}'] = data['Close']
+    elif f'{ticker}_Close' in data.columns:
+        data[f'Close_{ticker}'] = data[f'{ticker}_Close']
+
 # Strategy 1: Momentum Strategy
 momentum_data = strategies.simple_momentum_strategy(data.copy(), ticker=ticker)
 
@@ -28,11 +39,10 @@ fig.suptitle('Mean Reversion Strategy - Parameter Exploration', fontsize=16)
 # Loop over different parameters
 for i, window in enumerate(windows):
     for j, threshold in enumerate(thresholds):
-        
         # Apply mean reversion strategy with current parameters
         test_data = strategies.mean_reversion_strategy(data.copy(), window=window, threshold=threshold, ticker=ticker)
         
-        # Simulate portfolio (same as before)
+        # Simulate portfolio ONCE
         test_data = utils.simulate_portfolio(test_data, f"Mean Reversion (W={window}, T={threshold})", ticker=ticker)
         
         # Plot strategy in subplot
@@ -49,15 +59,16 @@ for i, window in enumerate(windows):
         
         # Mark buy/sell signals
         buy_signals = test_data[test_data['Position'] == 1]
-        ax.scatter(buy_signals.index, buy_signals[f'Close_{ticker}'], marker='^', color='green', label='Buy', s=50, alpha=0.7)
+        ax.scatter(buy_signals.index, buy_signals[f'Close_{ticker}'], marker='^', color='green', label='Buy', s=40, alpha=0.7)
         sell_signals = test_data[test_data['Position'] == -1]
-        ax.scatter(sell_signals.index, sell_signals[f'Close_{ticker}'], marker='v', color='red', label='Sell', s=50, alpha=0.7)
+        ax.scatter(sell_signals.index, sell_signals[f'Close_{ticker}'], marker='v', color='red', label='Sell', s=40, alpha=0.7)
         
         ax.set_title(f'W={window}, T={threshold}')
-        ax.legend(fontsize=8)
+        if i == 0 and j == 0:
+            ax.legend(fontsize=8)
         ax.grid(True, alpha=0.3)
 
-plt.tight_layout()
+plt.tight_layout(rect=[0, 0, 1, 0.96])
 plt.show()
 
 # Create subplot grid for mean reversion portfolio plots
@@ -67,30 +78,29 @@ fig.suptitle('Mean Reversion Strategy - Portfolio Evolution', fontsize=16)
 # Loop over different parameters for portfolio plots
 for i, window in enumerate(windows):
     for j, threshold in enumerate(thresholds):
-        # Apply mean reversion strategy with current parameters
+        # Apply and simulate once
         test_data = strategies.mean_reversion_strategy(data.copy(), window=window, threshold=threshold, ticker=ticker)
-        
-        # Simulate portfolio
         test_data = utils.simulate_portfolio(test_data, f"Mean Reversion (W={window}, T={threshold})", ticker=ticker)
         
         # Plot portfolio evolution in subplot
         ax = axes[i, j]
-        ax.plot(test_data.index, test_data['PortfolioValue'], label='Portfolio Value', linewidth=1.5, color='blue')
+        ax.plot(test_data.index, test_data['PortfolioValue'], label='Portfolio Value', linewidth=1.3, color='blue')
         
         # Mark buy/sell signals on portfolio
         buy_signals = test_data[test_data['Position'] == 1]
-        ax.scatter(buy_signals.index, buy_signals['PortfolioValue'], marker='^', color='green', label='Buy', s=50, alpha=0.7)
+        ax.scatter(buy_signals.index, buy_signals['PortfolioValue'], marker='^', color='green', s=35, alpha=0.7)
         sell_signals = test_data[test_data['Position'] == -1]
-        ax.scatter(sell_signals.index, sell_signals['PortfolioValue'], marker='v', color='red', label='Sell', s=50, alpha=0.7)
+        ax.scatter(sell_signals.index, sell_signals['PortfolioValue'], marker='v', color='red', s=35, alpha=0.7)
         
         ax.set_title(f'W={window}, T={threshold}')
-        ax.legend(fontsize=8)
+        if i == 0 and j == 0:
+            ax.legend(fontsize=8)
         ax.grid(True, alpha=0.3)
 
-plt.tight_layout()
+plt.tight_layout(rect=[0, 0, 1, 0.96])
 plt.show()
 
-# Parameter exploration for momentum strateg
+# Parameter exploration for momentum strategy
 # Define parameter ranges to test for momentum
 momentum_windows = [10, 20, 30, 50]
 
@@ -100,11 +110,9 @@ fig.suptitle('Momentum Strategy - Parameter Exploration', fontsize=16)
 
 # Loop over different parameters for momentum
 for i, window in enumerate(momentum_windows):
-    
     # Apply momentum strategy with current parameters
     test_data = strategies.simple_momentum_strategy(data.copy(), window=window, ticker=ticker)
-    
-    # Simulate portfolio (same as before)
+    # Simulate portfolio once
     test_data = utils.simulate_portfolio(test_data, f"Momentum (W={window})", ticker=ticker)
     
     # Plot strategy in subplot
@@ -117,15 +125,16 @@ for i, window in enumerate(momentum_windows):
     
     # Mark buy/sell signals
     buy_signals = test_data[test_data['Position'] == 1]
-    ax.scatter(buy_signals.index, buy_signals[f'Close_{ticker}'], marker='^', color='green', label='Buy', s=50, alpha=0.7)
+    ax.scatter(buy_signals.index, buy_signals[f'Close_{ticker}'], marker='^', color='green', s=40, alpha=0.7)
     sell_signals = test_data[test_data['Position'] == -1]
-    ax.scatter(sell_signals.index, sell_signals[f'Close_{ticker}'], marker='v', color='red', label='Sell', s=50, alpha=0.7)
+    ax.scatter(sell_signals.index, sell_signals[f'Close_{ticker}'], marker='v', color='red', s=40, alpha=0.7)
     
     ax.set_title(f'Window={window}')
-    ax.legend(fontsize=10)
+    if i == 0:
+        ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
 
-plt.tight_layout()
+plt.tight_layout(rect=[0, 0, 1, 0.96])
 plt.show()
 
 # Create subplot grid for momentum portfolio plots
@@ -134,10 +143,8 @@ fig.suptitle('Momentum Strategy - Portfolio Evolution', fontsize=16)
 
 # Loop over different parameters for momentum portfolio plots
 for i, window in enumerate(momentum_windows):
-    # Apply momentum strategy with current parameters
+    # Apply + simulate
     test_data = strategies.simple_momentum_strategy(data.copy(), window=window, ticker=ticker)
-    
-    # Simulate portfolio
     test_data = utils.simulate_portfolio(test_data, f"Momentum (W={window})", ticker=ticker)
     
     # Plot portfolio evolution in subplot
@@ -145,19 +152,20 @@ for i, window in enumerate(momentum_windows):
     col = i % 2
     ax = axes[row, col]
     
-    ax.plot(test_data.index, test_data['PortfolioValue'], label='Portfolio Value', linewidth=1.5, color='blue')
+    ax.plot(test_data.index, test_data['PortfolioValue'], label='Portfolio Value', linewidth=1.3, color='blue')
     
     # Mark buy/sell signals on portfolio
     buy_signals = test_data[test_data['Position'] == 1]
-    ax.scatter(buy_signals.index, buy_signals['PortfolioValue'], marker='^', color='green', label='Buy', s=50, alpha=0.7)
+    ax.scatter(buy_signals.index, buy_signals['PortfolioValue'], marker='^', color='green', s=35, alpha=0.7)
     sell_signals = test_data[test_data['Position'] == -1]
-    ax.scatter(sell_signals.index, sell_signals['PortfolioValue'], marker='v', color='red', label='Sell', s=50, alpha=0.7)
+    ax.scatter(sell_signals.index, sell_signals['PortfolioValue'], marker='v', color='red', s=35, alpha=0.7)
     
     ax.set_title(f'Window={window}')
-    ax.legend(fontsize=10)
+    if i == 0:
+        ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
 
-plt.tight_layout()
+plt.tight_layout(rect=[0, 0, 1, 0.96])
 plt.show()
 
 # The parameter exploration above shows all the combinations we need
