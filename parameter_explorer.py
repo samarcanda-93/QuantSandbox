@@ -54,14 +54,16 @@ class ParameterExplorer:
                     ticker=self.ticker
                 )
                 
-                # Calculate Sharpe ratio
+                # Calculate Sharpe ratio and drawdown
                 sharpe = finance_utils.calculate_sharpe_ratio(test_data)
+                drawdown_metrics = finance_utils.calculate_max_drawdown(test_data)
                 
                 # Store results
                 results.append({
                     'Window': window,
                     'Threshold': threshold,
                     'Sharpe_Ratio': sharpe if sharpe is not None else np.nan,
+                    'Max_Drawdown': drawdown_metrics['max_drawdown'],
                     'Data': test_data
                 })
                 
@@ -108,13 +110,15 @@ class ParameterExplorer:
                 ticker=self.ticker
             )
             
-            # Calculate Sharpe ratio
+            # Calculate Sharpe ratio and drawdown
             sharpe = finance_utils.calculate_sharpe_ratio(test_data)
+            drawdown_metrics = finance_utils.calculate_max_drawdown(test_data)
             
             # Store results
             results.append({
                 'Window': window,
                 'Sharpe_Ratio': sharpe if sharpe is not None else np.nan,
+                'Max_Drawdown': drawdown_metrics['max_drawdown'],
                 'Data': test_data
             })
             
@@ -128,44 +132,56 @@ class ParameterExplorer:
     def display_mean_reversion_results(self, results, best_params, best_sharpe):
         """Display mean reversion parameter exploration results."""
         results_df = pd.DataFrame([
-            {'Window': r['Window'], 'Threshold': r['Threshold'], 'Sharpe_Ratio': r['Sharpe_Ratio']} 
+            {'Window': r['Window'], 'Threshold': r['Threshold'], 'Sharpe_Ratio': r['Sharpe_Ratio'], 'Max_Drawdown': r['Max_Drawdown']} 
             for r in results
         ])
         
-        print("\n" + "="*60)
-        print("MEAN REVERSION STRATEGY - SHARPE RATIO RESULTS")
-        print("="*60)
+        print("\n" + "="*70)
+        print("MEAN REVERSION STRATEGY - PERFORMANCE RESULTS")
+        print("="*70)
+        print("SHARPE RATIO:")
         print(results_df.pivot(index='Window', columns='Threshold', values='Sharpe_Ratio').round(4))
         
-        # Display best parameter combination
+        print("\nMAXIMUM DRAWDOWN:")
+        drawdown_pivot = results_df.pivot(index='Window', columns='Threshold', values='Max_Drawdown').round(4)
+        print(drawdown_pivot)
+        
+        # Display best parameter combination with drawdown
         if best_params:
-            print(f"\n🏆 BEST PARAMETER COMBINATION:")
+            best_result = next(r for r in results if r['Window'] == best_params[0] and r['Threshold'] == best_params[1])
+            print(f"\nBEST PARAMETER COMBINATION:")
             print(f"   Window: {best_params[0]}, Threshold: {best_params[1]:.3f}")
             print(f"   Sharpe Ratio: {best_sharpe:.4f}")
+            print(f"   Max Drawdown: {best_result['Max_Drawdown']:.2%}" if best_result['Max_Drawdown'] else "   Max Drawdown: N/A")
         else:
-            print(f"\n❌ Unable to determine best parameters (all strategies failed)")
-        print("="*60)
+            print(f"\nERROR: Unable to determine best parameters (all strategies failed)")
+        print("="*70)
     
     def display_momentum_results(self, results, best_params, best_sharpe):
         """Display momentum parameter exploration results."""
         results_df = pd.DataFrame([
-            {'Window': r['Window'], 'Sharpe_Ratio': r['Sharpe_Ratio']} 
+            {'Window': r['Window'], 'Sharpe_Ratio': r['Sharpe_Ratio'], 'Max_Drawdown': r['Max_Drawdown']} 
             for r in results
         ])
         
-        print("\n" + "="*50)
-        print("MOMENTUM STRATEGY - SHARPE RATIO RESULTS")
-        print("="*50)
-        print(results_df.set_index('Window')['Sharpe_Ratio'].round(4).to_string())
+        print("\n" + "="*60)
+        print("MOMENTUM STRATEGY - PERFORMANCE RESULTS")
+        print("="*60)
+        print("SHARPE RATIO & MAX DRAWDOWN:")
+        display_df = results_df.set_index('Window')[['Sharpe_Ratio', 'Max_Drawdown']].round(4)
+        display_df['Max_Drawdown'] = display_df['Max_Drawdown'].apply(lambda x: f"{x:.2%}" if pd.notna(x) else "N/A")
+        print(display_df.to_string())
         
-        # Display best parameter combination
+        # Display best parameter combination with drawdown
         if best_params:
-            print(f"\n🏆 BEST MOMENTUM PARAMETER:")
+            best_result = next(r for r in results if r['Window'] == best_params)
+            print(f"\nBEST MOMENTUM PARAMETER:")
             print(f"   Window: {best_params}")
             print(f"   Sharpe Ratio: {best_sharpe:.4f}")
+            print(f"   Max Drawdown: {best_result['Max_Drawdown']:.2%}" if best_result['Max_Drawdown'] else "   Max Drawdown: N/A")
         else:
-            print(f"\n❌ Unable to determine best momentum parameters")
-        print("="*50)
+            print(f"\nERROR: Unable to determine best momentum parameters")
+        print("="*60)
     
     def get_user_parameters(self):
         """Get custom parameters from user for basic comparison."""
@@ -174,7 +190,7 @@ class ParameterExplorer:
         print("="*50)
         
         # Get momentum parameters
-        print("\n📈 Momentum Strategy Parameters:")
+        print("\nMomentum Strategy Parameters:")
         momentum_window = self._get_user_input(
             "Rolling window size (default: 20): ", 
             default=20, 
@@ -183,7 +199,7 @@ class ParameterExplorer:
         )
         
         # Get mean reversion parameters  
-        print("\n📊 Mean Reversion Strategy Parameters:")
+        print("\nMean Reversion Strategy Parameters:")
         mr_window = self._get_user_input(
             "Rolling window size (default: 20): ",
             default=20,
@@ -215,13 +231,13 @@ class ParameterExplorer:
                 value = param_type(user_input)
                 
                 if valid_range and not (valid_range[0] <= value <= valid_range[1]):
-                    print(f"❌ Value must be between {valid_range[0]} and {valid_range[1]}")
+                    print(f"ERROR: Value must be between {valid_range[0]} and {valid_range[1]}")
                     continue
                     
                 return value
                 
             except ValueError:
-                print(f"❌ Invalid input. Please enter a valid {param_type.__name__}")
+                print(f"ERROR: Invalid input. Please enter a valid {param_type.__name__}")
             except (EOFError, KeyboardInterrupt):
                 print(f"\nUsing default: {default}")
                 return default
@@ -256,7 +272,10 @@ class ParameterExplorer:
             momentum_data, f"Momentum (W={momentum_window})", ticker=self.ticker
         )
         momentum_sharpe = finance_utils.calculate_sharpe_ratio(momentum_data, print_rate_info=True)
-        print(f"📈 Momentum Strategy Sharpe Ratio: {momentum_sharpe:.4f}" if momentum_sharpe else "📈 Momentum Strategy Sharpe Ratio: Unable to calculate")
+        momentum_drawdown = finance_utils.calculate_max_drawdown(momentum_data)
+        print(f"Momentum Strategy:")
+        print(f"   Sharpe Ratio: {momentum_sharpe:.4f}" if momentum_sharpe else "   Sharpe Ratio: Unable to calculate")
+        print(f"   Max Drawdown: {momentum_drawdown['max_drawdown']:.2%}" if momentum_drawdown['max_drawdown'] else "   Max Drawdown: N/A")
 
         # Strategy 2: Mean Reversion Strategy  
         mean_reversion_data = strategies.mean_reversion_strategy(
@@ -266,29 +285,32 @@ class ParameterExplorer:
             mean_reversion_data, f"Mean Reversion (W={mr_window}, T={mr_threshold:.3f})", ticker=self.ticker
         )
         mean_reversion_sharpe = finance_utils.calculate_sharpe_ratio(mean_reversion_data)
-        print(f"📊 Mean Reversion Strategy Sharpe Ratio: {mean_reversion_sharpe:.4f}" if mean_reversion_sharpe else "📊 Mean Reversion Strategy Sharpe Ratio: Unable to calculate")
+        mean_reversion_drawdown = finance_utils.calculate_max_drawdown(mean_reversion_data)
+        print(f"Mean Reversion Strategy:")
+        print(f"   Sharpe Ratio: {mean_reversion_sharpe:.4f}" if mean_reversion_sharpe else "   Sharpe Ratio: Unable to calculate")
+        print(f"   Max Drawdown: {mean_reversion_drawdown['max_drawdown']:.2%}" if mean_reversion_drawdown['max_drawdown'] else "   Max Drawdown: N/A")
         
         # Display winner
         self._display_strategy_winner(momentum_sharpe, mean_reversion_sharpe)
         
         return {
-            'momentum': {'data': momentum_data, 'sharpe': momentum_sharpe, 'params': {'window': momentum_window}},
-            'mean_reversion': {'data': mean_reversion_data, 'sharpe': mean_reversion_sharpe, 'params': {'window': mr_window, 'threshold': mr_threshold}}
+            'momentum': {'data': momentum_data, 'sharpe': momentum_sharpe, 'drawdown': momentum_drawdown, 'params': {'window': momentum_window}},
+            'mean_reversion': {'data': mean_reversion_data, 'sharpe': mean_reversion_sharpe, 'drawdown': mean_reversion_drawdown, 'params': {'window': mr_window, 'threshold': mr_threshold}}
         }
     
     def _display_strategy_winner(self, momentum_sharpe, mean_reversion_sharpe):
         """Display which strategy performed better."""
         print("\n" + "="*50)
         if momentum_sharpe is None and mean_reversion_sharpe is None:
-            print("❌ Unable to determine winner - both strategies failed")
+            print("ERROR: Unable to determine winner - both strategies failed")
         elif momentum_sharpe is None:
-            print("🏆 WINNER: Mean Reversion Strategy (Momentum failed)")
+            print("WINNER: Mean Reversion Strategy (Momentum failed)")
         elif mean_reversion_sharpe is None:
-            print("🏆 WINNER: Momentum Strategy (Mean Reversion failed)")
+            print("WINNER: Momentum Strategy (Mean Reversion failed)")
         elif momentum_sharpe > mean_reversion_sharpe:
-            print(f"🏆 WINNER: Momentum Strategy (Sharpe: {momentum_sharpe:.4f} vs {mean_reversion_sharpe:.4f})")
+            print(f"WINNER: Momentum Strategy (Sharpe: {momentum_sharpe:.4f} vs {mean_reversion_sharpe:.4f})")
         elif mean_reversion_sharpe > momentum_sharpe:
-            print(f"🏆 WINNER: Mean Reversion Strategy (Sharpe: {mean_reversion_sharpe:.4f} vs {momentum_sharpe:.4f})")
+            print(f"WINNER: Mean Reversion Strategy (Sharpe: {mean_reversion_sharpe:.4f} vs {momentum_sharpe:.4f})")
         else:
-            print("🤝 TIE: Both strategies have equal Sharpe ratios")
+            print("TIE: Both strategies have equal Sharpe ratios")
         print("="*50)

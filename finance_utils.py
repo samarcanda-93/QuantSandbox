@@ -140,7 +140,7 @@ def calculate_sharpe_ratio(data, risk_free_rate=None, print_rate_info=False):
     if risk_free_rate is None:
         risk_free_rate, source = get_current_risk_free_rate()
         if print_rate_info:
-            print(f"📊 Risk-free rate: {risk_free_rate:.3%} (Source: {source})")
+            print(f"Risk-free rate: {risk_free_rate:.3%} (Source: {source})")
     
     # Calculate daily returns
     portfolio_values = data['PortfolioValue']
@@ -161,3 +161,126 @@ def calculate_sharpe_ratio(data, risk_free_rate=None, print_rate_info=False):
     sharpe_ratio = excess_return / annual_volatility
     
     return sharpe_ratio
+
+def calculate_max_drawdown(data):
+    """
+    Calculate maximum drawdown from portfolio values.
+    
+    Parameters:
+    - data: DataFrame with 'PortfolioValue' column
+    
+    Returns:
+    - dict: {'max_drawdown': float, 'drawdown_duration': int, 'recovery_time': int}
+    """
+    if 'PortfolioValue' not in data.columns:
+        return {'max_drawdown': None, 'drawdown_duration': None, 'recovery_time': None}
+    
+    portfolio_values = data['PortfolioValue']
+    
+    # Calculate running maximum (peak values)
+    running_max = portfolio_values.expanding().max()
+    
+    # Calculate drawdown at each point
+    drawdown = (portfolio_values - running_max) / running_max
+    
+    # Find maximum drawdown
+    max_drawdown = drawdown.min()
+    
+    # Find the period of maximum drawdown
+    max_dd_idx = drawdown.idxmin()
+    peak_before_max_dd = running_max.loc[max_dd_idx]
+    
+    # Find when the peak occurred
+    peak_idx = portfolio_values[portfolio_values == peak_before_max_dd].index[0]
+    
+    # Calculate drawdown duration (peak to trough)
+    drawdown_duration = (data.index.get_loc(max_dd_idx) - data.index.get_loc(peak_idx))
+    
+    # Find recovery time (trough back to peak level)
+    recovery_time = None
+    max_dd_position = data.index.get_loc(max_dd_idx)
+    if max_dd_position < len(portfolio_values) - 1:
+        # Look for recovery after the max drawdown point
+        recovery_values = portfolio_values.loc[max_dd_idx:]
+        recovery_candidates = recovery_values[recovery_values >= peak_before_max_dd]
+        if not recovery_candidates.empty:
+            recovery_idx = recovery_candidates.index[0]
+            recovery_time = (data.index.get_loc(recovery_idx) - data.index.get_loc(max_dd_idx))
+    
+    return {
+        'max_drawdown': abs(max_drawdown),  # Return as positive percentage
+        'drawdown_duration': drawdown_duration,
+        'recovery_time': recovery_time
+    }
+
+def latest_trade_recommendation(data, ticker='TSLA'):
+    """
+    Generate a simple trade recommendation from the most recent signals.
+
+    Parameters:
+    - data: DataFrame containing at least 'Signal', 'Position', 'RollingMean', and f'Close_{ticker}'
+    - ticker: Ticker symbol used to resolve the close column name
+
+    Returns:
+    - dict: {
+        'action': 'Buy' | 'Sell' | 'Hold',
+        'state': 'Long' | 'Flat',
+        'as_of_date': pandas.Timestamp,
+        'price': float | None,
+        'rolling_mean': float | None,
+        'signal': int | None
+      }
+    """
+    result = {
+        'action': 'Hold',
+        'state': 'Flat',
+        'as_of_date': None,
+        'price': None,
+        'rolling_mean': None,
+        'signal': None,
+    }
+
+    if data is None or len(data) == 0:
+        return result
+
+    # Ensure expected columns exist where possible
+    has_signal = 'Signal' in data.columns
+    has_position = 'Position' in data.columns
+    close_col = f'Close_{ticker}' if f'Close_{ticker}' in data.columns else ('Close' if 'Close' in data.columns else None)
+    has_rm = 'RollingMean' in data.columns
+
+    last_row = data.iloc[-1]
+    result['as_of_date'] = data.index[-1]
+    if close_col:
+        result['price'] = float(last_row[close_col])
+    if has_rm:
+        result['rolling_mean'] = float(last_row['RollingMean'])
+    if has_signal:
+        try:
+            result['signal'] = int(last_row['Signal'])
+        except Exception:
+            pass
+
+    # Determine action based on latest position change
+    if has_position:
+        try:
+            last_pos_change = int(last_row['Position'])
+        except Exception:
+            last_pos_change = 0
+    else:
+        last_pos_change = 0
+
+    if last_pos_change == 1:
+        result['action'] = 'Buy'
+    elif last_pos_change == -1:
+        result['action'] = 'Sell'
+    else:
+        result['action'] = 'Hold'
+
+    # Determine state: we only take long or flat in our simulator
+    if has_signal and result['signal'] is not None and result['signal'] > 0:
+        result['state'] = 'Long'
+    else:
+        result['state'] = 'Flat'
+
+    return result

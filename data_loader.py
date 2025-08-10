@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import sys
 import ai_utils
+from datetime import datetime, timedelta
 
 def parse_ticker_argument():
     """Parse command line arguments for ticker symbol."""
@@ -14,18 +15,23 @@ def parse_ticker_argument():
         print("WARNING: No ticker specified. Using default BTC-USD. Usage: python main.py <TICKER>")
         return ticker
 
-def download_ticker_data(ticker, start_date="2024-06-01", end_date="2025-07-01"):
+def download_ticker_data(ticker, start_date=None, end_date=None):
     """
     Download historical data for a given ticker with error handling.
     
     Parameters:
     - ticker: Stock ticker symbol
-    - start_date: Start date for historical data
-    - end_date: End date for historical data
+    - start_date: Start date for historical data (default: 1 year ago)
+    - end_date: End date for historical data (default: today)
     
     Returns:
     - pd.DataFrame: Historical price data
     """
+    # Set default dates: 1 year of data up to today
+    if end_date is None:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+    if start_date is None:
+        start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
     print(f"Downloading data for {ticker}...")
     
     try:
@@ -35,7 +41,7 @@ def download_ticker_data(ticker, start_date="2024-06-01", end_date="2025-07-01")
             handle_download_failure(ticker)
             sys.exit(1)
             
-        print(f"Successfully downloaded {len(data)} days of data for {ticker}")
+        print(f"Successfully downloaded {len(data)} days of data for {ticker} ({start_date} to {end_date})")
         return data
         
     except Exception as e:
@@ -90,14 +96,14 @@ def normalize_data_columns(data, ticker):
     
     return data
 
-def load_and_prepare_data(ticker=None, start_date="2024-06-01", end_date="2025-07-01"):
+def load_and_prepare_data(ticker=None, start_date=None, end_date=None):
     """
     Main function to load and prepare ticker data.
     
     Parameters:
     - ticker: Optional ticker symbol (if None, will parse from command line)
-    - start_date: Start date for historical data
-    - end_date: End date for historical data
+    - start_date: Start date for historical data (default: 1 year ago)
+    - end_date: End date for historical data (default: today)
     
     Returns:
     - tuple: (ticker, normalized_data)

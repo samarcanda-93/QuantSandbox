@@ -19,7 +19,7 @@ class StrategyPlotter:
         - plot_type: Either "signals" or "portfolio"
         """
         fig, axes = plt.subplots(grid_dims[0], grid_dims[1], figsize=(20, 16))
-        fig.suptitle(f'{title_prefix} - {plot_type.title()} with Sharpe Ratios', fontsize=16)
+        fig.suptitle(f'{title_prefix} - {plot_type.title()} with Sharpe & Drawdown', fontsize=16)
         
         # Ensure axes is always 2D for consistent indexing
         if grid_dims[0] == 1 or grid_dims[1] == 1:
@@ -28,9 +28,10 @@ class StrategyPlotter:
         return fig, axes
     
     def plot_single_strategy_signals(self, ax, test_data, sharpe, window, threshold=None, 
-                                   best_params=None, show_legend=False):
+                                   best_params=None, show_legend=False, max_drawdown=None):
         """Plot trading signals for a single strategy configuration."""
         sharpe_display = f"{sharpe:.3f}" if sharpe is not None else "N/A"
+        drawdown_display = f"{max_drawdown:.2%}" if max_drawdown is not None else "N/A"
         
         # Plot price and rolling mean
         ax.plot(test_data.index, test_data[f'Close_{self.ticker}'], 
@@ -51,12 +52,13 @@ class StrategyPlotter:
         self._add_trading_signals(ax, test_data)
         
         # Format title and legend
-        self._format_subplot(ax, window, threshold, sharpe_display, best_params, show_legend)
+        self._format_subplot(ax, window, threshold, sharpe_display, best_params, show_legend, drawdown_display)
     
     def plot_single_strategy_portfolio(self, ax, test_data, sharpe, window, threshold=None,
-                                     best_params=None, show_legend=False):
+                                     best_params=None, show_legend=False, max_drawdown=None):
         """Plot portfolio evolution for a single strategy configuration."""
         sharpe_display = f"{sharpe:.3f}" if sharpe is not None else "N/A"
+        drawdown_display = f"{max_drawdown:.2%}" if max_drawdown is not None else "N/A"
         
         # Plot portfolio evolution
         ax.plot(test_data.index, test_data['PortfolioValue'], 
@@ -66,7 +68,7 @@ class StrategyPlotter:
         self._add_portfolio_signals(ax, test_data)
         
         # Format title and legend  
-        self._format_subplot(ax, window, threshold, sharpe_display, best_params, show_legend)
+        self._format_subplot(ax, window, threshold, sharpe_display, best_params, show_legend, drawdown_display)
     
     def _add_trading_signals(self, ax, test_data):
         """Add buy/sell signal markers to price plot."""
@@ -86,15 +88,19 @@ class StrategyPlotter:
         ax.scatter(sell_signals.index, sell_signals['PortfolioValue'], 
                   marker='v', color='red', s=35, alpha=0.7)
     
-    def _format_subplot(self, ax, window, threshold, sharpe_display, best_params, show_legend):
+    def _format_subplot(self, ax, window, threshold, sharpe_display, best_params, show_legend, drawdown_display=None):
         """Format subplot with title, legend, and grid."""
         # Determine if this is the best parameter combination
         if threshold is not None:
             is_best = best_params == (window, threshold)
             title = f'W={window}, T={threshold:.3f}\nSharpe: {sharpe_display}'
+            if drawdown_display:
+                title += f'\nDrawdown: {drawdown_display}'
         else:
             is_best = best_params == window
             title = f'Window={window}\nSharpe: {sharpe_display}'
+            if drawdown_display:
+                title += f'\nDrawdown: {drawdown_display}'
         
         title_color = 'darkgreen' if is_best else 'black'
         ax.set_title(title, color=title_color, 
@@ -126,7 +132,8 @@ class StrategyPlotter:
                 
                 self.plot_single_strategy_signals(
                     axes[i, j], result['Data'], result['Sharpe_Ratio'],
-                    window, threshold, best_params, show_legend=(i == 0 and j == 0)
+                    window, threshold, best_params, show_legend=(i == 0 and j == 0), 
+                    max_drawdown=result['Max_Drawdown']
                 )
         
         plt.tight_layout(rect=[0, 0, 1, 0.96])
@@ -146,7 +153,8 @@ class StrategyPlotter:
                 
                 self.plot_single_strategy_portfolio(
                     axes[i, j], result['Data'], result['Sharpe_Ratio'],
-                    window, threshold, best_params, show_legend=(i == 0 and j == 0)
+                    window, threshold, best_params, show_legend=(i == 0 and j == 0),
+                    max_drawdown=result['Max_Drawdown']
                 )
         
         plt.tight_layout(rect=[0, 0, 1, 0.96])
@@ -173,7 +181,8 @@ class StrategyPlotter:
             row, col = i // 2, i % 2
             self.plot_single_strategy_signals(
                 axes[row, col], result['Data'], result['Sharpe_Ratio'],
-                window, best_params=best_params, show_legend=(i == 0)
+                window, best_params=best_params, show_legend=(i == 0),
+                max_drawdown=result['Max_Drawdown']
             )
         
         plt.tight_layout(rect=[0, 0, 1, 0.96])
@@ -193,7 +202,8 @@ class StrategyPlotter:
             row, col = i // 2, i % 2
             self.plot_single_strategy_portfolio(
                 axes[row, col], result['Data'], result['Sharpe_Ratio'],
-                window, best_params=best_params, show_legend=(i == 0)
+                window, best_params=best_params, show_legend=(i == 0),
+                max_drawdown=result['Max_Drawdown']
             )
         
         plt.tight_layout(rect=[0, 0, 1, 0.96])
@@ -207,11 +217,20 @@ class StrategyPlotter:
         # Plot portfolio values
         for strategy_name, results in strategy_results.items():
             data = results['data']
-            sharpe = results['sharpe']
+            sharpe = results.get('sharpe')
+            drawdown = None
+            if isinstance(results.get('drawdown'), dict):
+                drawdown = results['drawdown'].get('max_drawdown')
+
             label = f"{strategy_name.replace('_', ' ').title()}"
-            if sharpe:
-                label += f" (Sharpe: {sharpe:.3f})"
-            
+            metrics = []
+            if sharpe is not None:
+                metrics.append(f"Sharpe: {sharpe:.3f}")
+            if drawdown is not None:
+                metrics.append(f"DD: {drawdown:.2%}")
+            if metrics:
+                label += " (" + ", ".join(metrics) + ")"
+
             ax1.plot(data.index, data['PortfolioValue'], label=label, linewidth=2)
         
         ax1.set_title('Portfolio Value Evolution')

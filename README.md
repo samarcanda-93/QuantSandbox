@@ -8,7 +8,9 @@ A Python-based quantitative trading sandbox for backtesting and analyzing algori
 - **Mean Reversion Strategy**: Counter-trend strategy using statistical bands
 - **Parameter Exploration**: Grid search functionality for strategy optimization
 - **Portfolio Simulation**: Simple backtesting with position tracking
-- **Visualization**: Comprehensive plotting of strategy performance and signals
+- **Visualization**: Plots now show both **Sharpe** and **Max Drawdown** in titles/legends (including strategy comparisons)
+- **PDF Reports**: Basic and Full reports with summaries, charts, risk metrics, and a “Today’s suggestion” line
+- **End‑of‑Run Suggestion**: Console and PDF display a concise Buy/Sell/Hold suggestion based on the best strategy
 
 ## Strategies Implemented
 
@@ -23,6 +25,14 @@ A Python-based quantitative trading sandbox for backtesting and analyzing algori
 - Buy when price drops below lower band (mean - threshold%)
 - Sell when price rises above upper band (mean + threshold%)
 - Configurable window and threshold parameters
+
+
+## What’s New
+
+- Plots annotate both Sharpe and Max Drawdown across parameter grids and comparison charts
+- End‑of‑run “Today’s suggestion” is printed to the console and included in PDF summaries
+- PDF basic summary and full executive summary now include a “Today’s suggestion” line
+- A “Not financial advice” disclaimer accompanies suggestions
 
 ## Installation
 
@@ -223,6 +233,25 @@ The script will:
   - Portfolio value evolution
   - Parameter sensitivity analysis
 - If the ticker fails to download, AI-powered suggestions will be provided (if APIs are configured)
+- Print a “Today’s suggestion” line (also included in PDFs)
+
+### “Today’s suggestion” logic
+
+- The suggestion is derived from the latest row of the selected strategy’s output:
+  - **Action**: based on the latest `Position` change (+1=Buy, −1=Sell, 0=Hold)
+  - **State**: based on the latest `Signal` (>0=Long, else Flat)
+- Strategy selection:
+  - In Basic mode: whichever strategy (Momentum vs Mean Reversion) has the higher Sharpe
+  - In Full mode: higher Sharpe between the best‑parameter Mean Reversion and Momentum runs
+- Context shown: date and last price for the asset
+- Note: uses the latest available bar from Yahoo Finance; if today’s bar isn’t updated yet, it reflects the most recent close
+
+### PDF reports
+
+- You’ll be prompted to generate a PDF at the end of runs
+- Reports include: summary/executive summary, portfolio charts, risk metrics, parameter heatmaps and comparisons, and “Today’s suggestion”
+- Filenames follow patterns like `strategy_report_<TICKER>_<timestamp>.pdf` or `full_analysis_report_<TICKER>_<timestamp>.pdf`
+- Each suggestion is accompanied by the disclaimer: “This is not financial advice.”
 
 ## File Structure
 
@@ -235,6 +264,7 @@ The script will:
 - `plotting.py` - Modular visualization and charting functions
 - `strategies.py` - Strategy implementations (momentum and mean reversion)
 - `finance_utils.py` - Portfolio simulation, risk metrics, and financial calculations
+-    - Includes Sharpe (with live risk‑free rate fallback) and Max Drawdown; provides the `latest_trade_recommendation` helper
 - `ai_utils.py` - AI-powered ticker suggestions and API integrations
 
 ### Configuration & Testing
@@ -277,11 +307,12 @@ The script generates multiple visualization plots:
 - Portfolio simulation uses simple position sizing (all-in/all-out)
 - No transaction costs or slippage modeling
 - Results are for educational/research purposes only
+- Suggestions shown in console and PDFs are informational and **not financial advice**
 
 ## Future Enhancements
 
 - Add more sophisticated risk management
 - Implement additional technical indicators
-- Include performance metrics (Sharpe ratio, max drawdown, etc.)
+- Add additional performance metrics (Sortino, Calmar, hit rate, exposure, etc.)
 - Add backtesting statistics and reporting
 - Support for multiple assets and portfolio optimization
