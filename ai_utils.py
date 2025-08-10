@@ -1,5 +1,6 @@
 import os
 import yfinance as yf
+import contextlib
 
 def check_api_setup():
     """Check if AI APIs are configured and warn user if not."""
@@ -21,8 +22,6 @@ def get_ai_ticker_suggestions(failed_ticker):
 
     Returns a list of dictionaries: [{ 'ticker': 'AAPL', 'name': 'Apple Inc.' }, ...]
     """
-    print("Consulting AI for ticker suggestions...")
-    
     raw_suggestions = None
     # Try Google Gemini API first
     raw_suggestions = try_google_gemini_suggestions(failed_ticker)
@@ -31,7 +30,6 @@ def get_ai_ticker_suggestions(failed_ticker):
         raw_suggestions = try_huggingface_suggestions(failed_ticker)
     if not raw_suggestions:
         # Final fallback to pattern matching
-        print("AI unavailable, using pattern analysis...")
         raw_suggestions = get_pattern_based_suggestions(failed_ticker)
 
     if not raw_suggestions:
@@ -92,11 +90,9 @@ def try_google_gemini_suggestions(failed_ticker):
                 json_match = re.search(r'\[.*?\]', text, re.DOTALL)
                 if json_match:
                     suggestions = json.loads(json_match.group())
-                    print(f"Google Gemini suggested: {suggestions}")
                     return suggestions[:5]
     
-    except Exception as e:
-        print(f"Google Gemini API failed: {e}")
+    except Exception:
         return None
 
 def try_huggingface_suggestions(failed_ticker):
@@ -143,11 +139,9 @@ def try_huggingface_suggestions(failed_ticker):
             
             suggestions = [ticker for ticker, score in ticker_scores[:5] if score > 0.3]
             if suggestions:
-                print(f"Hugging Face suggested: {suggestions}")
                 return suggestions
     
-    except Exception as e:
-        print(f"Hugging Face API failed: {e}")
+    except Exception:
         return None
 
 def extract_tickers_from_text(text, original_ticker):
@@ -266,9 +260,12 @@ def validate_ticker_exists(ticker: str):
     Returns True if ticker is valid, False otherwise.
     """
     try:
-        tk = yf.Ticker(ticker)
-        # Quick test: try to get recent data (last 5 days)
-        hist = tk.history(period="5d")
+        # Suppress all yfinance error messages during validation
+        with open(os.devnull, 'w') as devnull:
+            with contextlib.redirect_stderr(devnull):
+                tk = yf.Ticker(ticker)
+                # Quick test: try to get recent data (last 5 days)
+                hist = tk.history(period="5d")
         return not hist.empty
     except Exception:
         return False
@@ -372,7 +369,6 @@ def enrich_tickers_with_names(suggestions):
     """
     enriched = []
     seen = set()
-    print("Validating ticker suggestions...")
     
     for t in suggestions:
         if not t or t in seen:
@@ -383,8 +379,5 @@ def enrich_tickers_with_names(suggestions):
         if validate_ticker_exists(t):
             name = resolve_ticker_name(t)
             enriched.append({'ticker': t, 'name': name})
-            print(f"[OK] {t} - Valid ticker")
-        else:
-            print(f"[X] {t} - Invalid or no data")
     
     return enriched

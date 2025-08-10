@@ -1,6 +1,6 @@
 # QuantSandbox
 
-A Python-based quantitative trading sandbox for backtesting and analyzing algorithmic trading strategies on cryptocurrency and financial data.
+A comprehensive Python framework for backtesting, optimizing, and analyzing quantitative trading strategies with AI-powered insights and PDF reporting. 
 
 ## Features
 
@@ -26,13 +26,11 @@ A Python-based quantitative trading sandbox for backtesting and analyzing algori
 - Sell when price rises above upper band (mean + threshold%)
 - Configurable window and threshold parameters
 
-
-## What’s New
-
+### 2. Portfolio Analysis
 - Plots annotate both Sharpe and Max Drawdown across parameter grids and comparison charts
 - End‑of‑run “Today’s suggestion” is printed to the console and included in PDF summaries
 - PDF basic summary and full executive summary now include a “Today’s suggestion” line
-- A “Not financial advice” disclaimer accompanies suggestions
+- AI-generated analyis of the strategy.
 
 ## Installation
 
@@ -233,7 +231,7 @@ The script will:
   - Portfolio value evolution
   - Parameter sensitivity analysis
 - If the ticker fails to download, AI-powered suggestions will be provided (if APIs are configured)
-- Print a “Today’s suggestion” line (also included in PDFs)
+- Print a “Today’s suggestion” line
 
 ### “Today’s suggestion” logic
 
@@ -249,7 +247,7 @@ The script will:
 ### PDF reports
 
 - You’ll be prompted to generate a PDF at the end of runs
-- Reports include: summary/executive summary, portfolio charts, risk metrics, parameter heatmaps and comparisons, and “Today’s suggestion”
+- Reports include: summary/executive summary, portfolio charts, risk metrics, parameter heatmaps and comparisons, AI-generated market analysis, and “Today’s suggestion”
 - Filenames follow patterns like `strategy_report_<TICKER>_<timestamp>.pdf` or `full_analysis_report_<TICKER>_<timestamp>.pdf`
 - Each suggestion is accompanied by the disclaimer: “This is not financial advice.”
 
@@ -357,14 +355,11 @@ This simplified model is designed for:
 - Strategies include proper look-ahead bias prevention
 - Results are for educational/research purposes only
 - Suggestions shown in console and PDFs are informational and **not financial advice**
-- Always consult qualified financial advisors before making real investment decisions
 
 ## Future Enhancements
-
 - Add more sophisticated risk management
-- Implement additional technical indicators
+- Implement additional indicators
 - Add additional performance metrics (Sortino, Calmar, hit rate, exposure, etc.)
-- Add backtesting statistics and reporting
 - Support for multiple assets and portfolio optimization
 - **Custom Ticker Recognition Model**: Train a specialized machine learning model for improved ticker suggestion accuracy
   - Fine-tune language models (BERT/DistilBERT) on company name → ticker mappings

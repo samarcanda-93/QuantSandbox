@@ -2,6 +2,8 @@ import yfinance as yf
 import pandas as pd
 import sys
 import ai_utils
+import os
+import contextlib
 from datetime import datetime, timedelta
 
 def parse_ticker_argument():
@@ -35,7 +37,10 @@ def download_ticker_data(ticker, start_date=None, end_date=None):
     print(f"Downloading data for {ticker}...")
     
     try:
-        data = yf.download(ticker, start=start_date, end=end_date, auto_adjust=False)
+        # Suppress yfinance error messages
+        with open(os.devnull, 'w') as devnull:
+            with contextlib.redirect_stderr(devnull):
+                data = yf.download(ticker, start=start_date, end=end_date, auto_adjust=False, progress=False)
         
         if data.empty or len(data) == 0:
             handle_download_failure(ticker)
@@ -45,19 +50,16 @@ def download_ticker_data(ticker, start_date=None, end_date=None):
         return data
         
     except Exception as e:
-        print(f"ERROR: Failed to download data for ticker '{ticker}': {e}")
         handle_download_failure(ticker)
         sys.exit(1)
 
 def handle_download_failure(ticker):
     """Handle failed ticker download with AI-powered suggestions."""
-    print(f"ERROR: Failed to download data for ticker '{ticker}'")
-    
-    # Generate AI-powered intelligent suggestions
+    # Generate AI-powered intelligent suggestions silently
     suggestions = ai_utils.get_ai_ticker_suggestions(ticker)
     
     if suggestions:
-        print(f"\nDid you mean one of these?")
+        print(f"Did you mean one of these?")
         for i, suggestion in enumerate(suggestions[:5], 1):
             if isinstance(suggestion, dict):
                 label = f"{suggestion.get('ticker')} - {suggestion.get('name') or 'Name unavailable'}"
@@ -67,6 +69,7 @@ def handle_download_failure(ticker):
         first = suggestions[0]['ticker'] if isinstance(suggestions[0], dict) else suggestions[0]
         print(f"\nTry: python main.py {first}")
     else:
+        print(f"Ticker '{ticker}' not found.")
         print("\nPossible reasons:")
         print("  - Ticker doesn't exist or is delisted")
         print("  - Wrong ticker format")
