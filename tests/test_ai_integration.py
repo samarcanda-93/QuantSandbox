@@ -20,4 +20,9 @@ if __name__ == "__main__":
     print(f"API Key present: {'Yes' if os.getenv('GEMINI_API_KEY') else 'No'}")
     
     suggestions = ai_utils.get_ai_ticker_suggestions(failed_ticker)
-    print(f"Suggestions: {suggestions}")
+    print("Suggestions:")
+    for s in suggestions:
+        if isinstance(s, dict):
+            print(f" - {s.get('ticker')} - {s.get('name')}")
+        else:
+            print(f" - {s}")

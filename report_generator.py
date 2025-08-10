@@ -40,20 +40,23 @@ class StrategyReportGenerator:
             # Page 1: Executive Summary
             self._create_executive_summary_page(pdf, mr_results, mom_results, mr_best_params, mom_best_params)
             
-            # Page 2: Mean Reversion Analysis
-            self._create_mean_reversion_analysis_page(pdf, mr_results, mr_best_params)
+            # Page 2: Strategy Performance Overview
+            self._create_strategy_overview_page(pdf, mr_results, mom_results, mr_best_params, mom_best_params)
             
-            # Page 3: Momentum Analysis
-            self._create_momentum_analysis_page(pdf, mom_results, mom_best_params)
+            # Page 3: Parameter Analysis Charts
+            self._create_parameter_charts_page(pdf, mr_results, mom_results, mr_best_params, mom_best_params)
             
-            # Page 4: Best Strategy Comparison
-            self._create_best_strategies_comparison_page(pdf, mr_results, mom_results, mr_best_params, mom_best_params)
+            # Page 4: AI Analysis & Key Insights  
+            self._create_insights_page(pdf, mr_results, mom_results, mr_best_params, mom_best_params)
+            
+            # Page 5: Glossary
+            self._create_glossary_page(pdf)
         
         return filename
     
     def _create_summary_page(self, pdf, results):
         """Create summary page for basic report."""
-        fig, ax = plt.subplots(figsize=(8.5, 11))
+        fig, ax = plt.subplots(figsize=(8.27, 11.69))  # A4 format
         ax.axis('off')
         
         # Title
@@ -116,12 +119,19 @@ class StrategyReportGenerator:
             except Exception:
                 pass
         
-        pdf.savefig(fig, bbox_inches='tight')
+        # Add disclaimer as footnote
+        disclaimer = ("DISCLAIMER: This report is for educational purposes only and does not constitute financial advice. "
+                     "Past performance does not guarantee future results. Trading involves risk and can result in losses. "
+                     "Consult a qualified financial advisor before making investment decisions.")
+        ax.text(0.05, 0.02, disclaimer, transform=ax.transAxes, fontsize=7,
+                verticalalignment='bottom', style='italic', color='gray', wrap=True)
+        
+        pdf.savefig(fig, dpi=150)
         plt.close(fig)
     
     def _create_portfolio_chart_page(self, pdf, results):
         """Create portfolio performance chart page."""
-        fig, ax = plt.subplots(figsize=(11, 8.5))
+        fig, ax = plt.subplots(figsize=(8.27, 11.69))  # A4 format
         
         for strategy_name, data in results.items():
             portfolio_data = data['data']
@@ -150,12 +160,12 @@ class StrategyReportGenerator:
         # Rotate x-axis labels for better readability
         plt.xticks(rotation=45)
         
-        pdf.savefig(fig, bbox_inches='tight')
+        pdf.savefig(fig, dpi=150)
         plt.close(fig)
     
     def _create_risk_metrics_page(self, pdf, results):
         """Create risk metrics comparison page."""
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8.5, 11))
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8.27, 11.69))  # A4 format
         
         # Sharpe Ratio Comparison
         strategies = list(results.keys())
@@ -190,12 +200,12 @@ class StrategyReportGenerator:
                         f'{value:.2%}', ha='center', va='bottom')
         
         plt.tight_layout()
-        pdf.savefig(fig, bbox_inches='tight')
+        pdf.savefig(fig, dpi=150)
         plt.close(fig)
     
     def _create_executive_summary_page(self, pdf, mr_results, mom_results, mr_best_params, mom_best_params):
         """Create executive summary for full analysis report."""
-        fig, ax = plt.subplots(figsize=(8.5, 11))
+        fig, ax = plt.subplots(figsize=(8.27, 11.69))  # A4 format
         ax.axis('off')
         
         # Title
@@ -265,206 +275,314 @@ class StrategyReportGenerator:
             except Exception:
                 pass
         
-        pdf.savefig(fig, bbox_inches='tight')
+        pdf.savefig(fig, dpi=150)
         plt.close(fig)
     
-    def _create_mean_reversion_analysis_page(self, pdf, mr_results, mr_best_params):
-        """Create mean reversion detailed analysis page."""
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(11, 8.5))
-        fig.suptitle('Mean Reversion Strategy Analysis', fontsize=16, fontweight='bold')
+    def _create_strategy_overview_page(self, pdf, mr_results, mom_results, mr_best_params, mom_best_params):
+        """Create strategy performance overview page with single column layout."""
+        fig = plt.figure(figsize=(8.27, 11.69))  # A4 format
+        fig.suptitle(f'Strategy Performance Overview - {self.ticker}', fontsize=14, fontweight='bold', y=0.95)
         
-        # Convert results to DataFrame
-        results_df = pd.DataFrame([
-            {'Window': r['Window'], 'Threshold': r['Threshold'], 'Sharpe_Ratio': r['Sharpe_Ratio'], 'Max_Drawdown': r['Max_Drawdown']} 
-            for r in mr_results
-        ])
-        
-        # Sharpe Ratio Heatmap
-        sharpe_pivot = results_df.pivot(index='Window', columns='Threshold', values='Sharpe_Ratio')
-        im1 = ax1.imshow(sharpe_pivot.values, cmap='RdYlGn', aspect='auto')
-        ax1.set_title('Sharpe Ratio Heatmap')
-        ax1.set_xticks(range(len(sharpe_pivot.columns)))
-        ax1.set_xticklabels([f'{x:.3f}' for x in sharpe_pivot.columns])
-        ax1.set_yticks(range(len(sharpe_pivot.index)))
-        ax1.set_yticklabels(sharpe_pivot.index)
-        ax1.set_xlabel('Threshold')
-        ax1.set_ylabel('Window')
-        plt.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
-        
-        # Max Drawdown Heatmap
-        dd_pivot = results_df.pivot(index='Window', columns='Threshold', values='Max_Drawdown')
-        im2 = ax2.imshow(dd_pivot.values, cmap='RdYlGn_r', aspect='auto')
-        ax2.set_title('Max Drawdown Heatmap')
-        ax2.set_xticks(range(len(dd_pivot.columns)))
-        ax2.set_xticklabels([f'{x:.3f}' for x in dd_pivot.columns])
-        ax2.set_yticks(range(len(dd_pivot.index)))
-        ax2.set_yticklabels(dd_pivot.index)
-        ax2.set_xlabel('Threshold')
-        ax2.set_ylabel('Window')
-        plt.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04)
-        
-        # Performance by Window
-        window_performance = results_df.groupby('Window')['Sharpe_Ratio'].mean()
-        ax3.bar(window_performance.index, window_performance.values)
-        ax3.set_title('Average Sharpe by Window')
-        ax3.set_xlabel('Window Size')
-        ax3.set_ylabel('Average Sharpe Ratio')
-        ax3.grid(True, alpha=0.3, axis='y')
-        
-        # Performance by Threshold
-        threshold_performance = results_df.groupby('Threshold')['Sharpe_Ratio'].mean()
-        ax4.bar(threshold_performance.index, threshold_performance.values)
-        ax4.set_title('Average Sharpe by Threshold')
-        ax4.set_xlabel('Threshold')
-        ax4.set_ylabel('Average Sharpe Ratio')
-        ax4.grid(True, alpha=0.3, axis='y')
-        
-        plt.tight_layout()
-        pdf.savefig(fig, bbox_inches='tight')
-        plt.close(fig)
-    
-    def _create_momentum_analysis_page(self, pdf, mom_results, mom_best_params):
-        """Create momentum strategy detailed analysis page."""
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(11, 8.5))
-        fig.suptitle('Momentum Strategy Analysis', fontsize=16, fontweight='bold')
-        
-        # Convert results to DataFrame
-        results_df = pd.DataFrame([
-            {'Window': r['Window'], 'Sharpe_Ratio': r['Sharpe_Ratio'], 'Max_Drawdown': r['Max_Drawdown']} 
-            for r in mom_results
-        ])
-        
-        # Performance by Window
-        ax1.bar(results_df['Window'], results_df['Sharpe_Ratio'], color='blue', alpha=0.7)
-        ax1.set_title('Sharpe Ratio by Window Size')
-        ax1.set_xlabel('Window Size')
-        ax1.set_ylabel('Sharpe Ratio')
-        ax1.grid(True, alpha=0.3, axis='y')
-        
-        # Mark best parameter
-        if mom_best_params:
-            best_sharpe = results_df[results_df['Window'] == mom_best_params]['Sharpe_Ratio'].iloc[0]
-            ax1.bar(mom_best_params, best_sharpe, color='green', alpha=0.9, label='Best')
-            ax1.legend()
-        
-        # Max Drawdown by Window
-        ax2.bar(results_df['Window'], results_df['Max_Drawdown'], color='red', alpha=0.7)
-        ax2.set_title('Max Drawdown by Window Size')
-        ax2.set_xlabel('Window Size')
-        ax2.set_ylabel('Max Drawdown')
-        ax2.grid(True, alpha=0.3, axis='y')
-        ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:.1%}'))
-        
-        # Risk-Return Scatter
-        ax3.scatter(results_df['Max_Drawdown'], results_df['Sharpe_Ratio'], s=100, alpha=0.7)
-        ax3.set_xlabel('Max Drawdown')
-        ax3.set_ylabel('Sharpe Ratio')
-        ax3.set_title('Risk-Return Profile')
-        ax3.grid(True, alpha=0.3)
-        ax3.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:.1%}'))
-        
-        # Add window labels to scatter points
-        for _, row in results_df.iterrows():
-            ax3.annotate(f'W{int(row["Window"])}', (row['Max_Drawdown'], row['Sharpe_Ratio']), 
-                        xytext=(5, 5), textcoords='offset points', fontsize=8)
-        
-        # Summary table
-        ax4.axis('tight')
-        ax4.axis('off')
-        table_data = results_df.round(4)
-        table_data['Max_Drawdown'] = table_data['Max_Drawdown'].apply(lambda x: f'{x:.2%}' if pd.notna(x) else 'N/A')
-        ax4.table(cellText=table_data.values, colLabels=table_data.columns, cellLoc='center', loc='center')
-        ax4.set_title('Summary Table')
-        
-        plt.tight_layout()
-        pdf.savefig(fig, bbox_inches='tight')
-        plt.close(fig)
-    
-    def _create_best_strategies_comparison_page(self, pdf, mr_results, mom_results, mr_best_params, mom_best_params):
-        """Create comparison page for best strategies from each type."""
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(11, 8.5))
-        fig.suptitle('Best Strategy Comparison', fontsize=16, fontweight='bold')
+        # Create 4 subplots in single column
+        ax1 = plt.subplot(4, 1, 1)
+        ax2 = plt.subplot(4, 1, 2)
+        ax3 = plt.subplot(4, 1, 3)
+        ax4 = plt.subplot(4, 1, 4)
         
         if mr_best_params and mom_best_params:
             # Get best results
             best_mr = next(r for r in mr_results if r['Window'] == mr_best_params[0] and r['Threshold'] == mr_best_params[1])
             best_mom = next(r for r in mom_results if r['Window'] == mom_best_params)
             
-            # Portfolio comparison
-            # Build labels with Sharpe and Drawdown
-            mr_metrics = []
-            if best_mr.get('Sharpe_Ratio') is not None:
-                mr_metrics.append(f"Sharpe: {best_mr['Sharpe_Ratio']:.3f}")
-            if best_mr.get('Max_Drawdown') is not None:
-                mr_metrics.append(f"DD: {best_mr['Max_Drawdown']:.2%}")
-            mr_label = f"Mean Reversion (W={mr_best_params[0]}, T={mr_best_params[1]:.3f})"
-            if mr_metrics:
-                mr_label += " (" + ", ".join(mr_metrics) + ")"
-
-            mom_metrics = []
-            if best_mom.get('Sharpe_Ratio') is not None:
-                mom_metrics.append(f"Sharpe: {best_mom['Sharpe_Ratio']:.3f}")
-            if best_mom.get('Max_Drawdown') is not None:
-                mom_metrics.append(f"DD: {best_mom['Max_Drawdown']:.2%}")
-            mom_label = f"Momentum (W={mom_best_params})"
-            if mom_metrics:
-                mom_label += " (" + ", ".join(mom_metrics) + ")"
-
-            ax1.plot(best_mr['Data'].index, best_mr['Data']['PortfolioValue'], label=mr_label, linewidth=2)
-            ax1.plot(best_mom['Data'].index, best_mom['Data']['PortfolioValue'], label=mom_label, linewidth=2)
-            ax1.set_title('Portfolio Value Evolution')
-            ax1.set_ylabel('Portfolio Value')
-            ax1.legend()
+            # Portfolio Performance Comparison
+            mr_data = best_mr['Data']
+            mom_data = best_mom['Data']
+            
+            ax1.plot(mr_data.index, mr_data['PortfolioValue'], 
+                    label=f'Mean Reversion', linewidth=2, color='blue')
+            ax1.plot(mom_data.index, mom_data['PortfolioValue'], 
+                    label=f'Momentum', linewidth=2, color='red')
+            ax1.set_title('Portfolio Value Evolution', fontsize=12, pad=10)
+            ax1.set_ylabel('Portfolio Value ($)', fontsize=10)
+            ax1.legend(loc='upper left', fontsize=9)
             ax1.grid(True, alpha=0.3)
             
-            # Performance metrics comparison
-            categories = ['Sharpe Ratio', 'Max Drawdown']
-            mr_values = [best_mr['Sharpe_Ratio'], best_mr['Max_Drawdown']]
-            mom_values = [best_mom['Sharpe_Ratio'], best_mom['Max_Drawdown']]
+            # No caption - information is in legend
             
-            x = np.arange(len(categories))
-            width = 0.35
+            # Price with Best Strategy Signals
+            if best_mr['Sharpe_Ratio'] >= best_mom['Sharpe_Ratio']:
+                best_data = mr_data
+                strategy_name = 'Mean Reversion'
+            else:
+                best_data = mom_data
+                strategy_name = 'Momentum'
             
-            ax2.bar(x - width/2, [mr_values[0], -mr_values[1]], width, 
-                   label='Mean Reversion', color='blue', alpha=0.7)
-            ax2.bar(x + width/2, [mom_values[0], -mom_values[1]], width, 
-                   label='Momentum', color='red', alpha=0.7)
+            ax2.plot(best_data.index, best_data[f'Close_{self.ticker}'], 
+                    label=f'{self.ticker}', color='black', linewidth=1.5)
             
-            ax2.set_title('Performance Metrics Comparison')
-            ax2.set_xticks(x)
-            ax2.set_xticklabels(['Sharpe Ratio', 'Max Drawdown (Inverted)'])
-            ax2.legend()
+            buy_signals = best_data[best_data['Position'] == 1]
+            sell_signals = best_data[best_data['Position'] == -1]
+            
+            if not buy_signals.empty:
+                ax2.scatter(buy_signals.index, buy_signals[f'Close_{self.ticker}'], 
+                           marker='^', color='green', s=25, label='Buy', alpha=0.8, zorder=5)
+            if not sell_signals.empty:
+                ax2.scatter(sell_signals.index, sell_signals[f'Close_{self.ticker}'], 
+                           marker='v', color='red', s=25, label='Sell', alpha=0.8, zorder=5)
+            
+            ax2.set_title(f'Trading Signals: {strategy_name}', fontsize=12, pad=10)
+            ax2.set_ylabel('Price ($)', fontsize=10)
+            ax2.legend(loc='upper left', fontsize=9)
+            ax2.grid(True, alpha=0.3)
+            
+            # No caption - information is in legend
+            
+            # Performance Metrics Bar Chart
+            strategies = ['Mean Rev.', 'Momentum']
+            sharpe_values = [best_mr['Sharpe_Ratio'], best_mom['Sharpe_Ratio']]
+            colors = ['blue', 'red']
+            
+            bars = ax3.bar(strategies, sharpe_values, color=colors, alpha=0.7, width=0.6)
+            ax3.set_title('Sharpe Ratio Comparison', fontsize=12, pad=10)
+            ax3.set_ylabel('Sharpe Ratio', fontsize=10)
+            ax3.grid(True, alpha=0.3, axis='y')
+            
+            # Add value labels on bars
+            for bar, value in zip(bars, sharpe_values):
+                height = bar.get_height()
+                ax3.text(bar.get_x() + bar.get_width()/2, height + 0.02, 
+                        f'{value:.3f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+            
+            # No caption needed
+            
+            # Risk Metrics
+            drawdown_values = [best_mr['Max_Drawdown'], best_mom['Max_Drawdown']]
+            bars2 = ax4.bar(strategies, drawdown_values, color=colors, alpha=0.7, width=0.6)
+            ax4.set_title('Maximum Drawdown', fontsize=12, pad=10)
+            ax4.set_ylabel('Max Drawdown', fontsize=10)
+            ax4.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:.1%}'))
+            ax4.grid(True, alpha=0.3, axis='y')
+            
+            # Add value labels on bars
+            for bar, value in zip(bars2, drawdown_values):
+                if value is not None:
+                    height = bar.get_height()
+                    ax4.text(bar.get_x() + bar.get_width()/2, height + 0.005, 
+                            f'{value:.1%}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+            
+            # No caption needed
+        
+        # Single column layout with proper spacing
+        plt.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.05, hspace=0.4)
+        pdf.savefig(fig, dpi=150)
+        plt.close(fig)
+    
+    def _create_parameter_charts_page(self, pdf, mr_results, mom_results, mr_best_params, mom_best_params):
+        """Create parameter analysis charts page with single column layout."""
+        fig = plt.figure(figsize=(8.27, 11.69))  # A4 format
+        fig.suptitle('Parameter Sensitivity Analysis', fontsize=14, fontweight='bold', y=0.95)
+        
+        # Create 3 subplots in single column (2 charts + 1 summary)
+        ax1 = plt.subplot(3, 1, 1)
+        ax2 = plt.subplot(3, 1, 2)
+        ax3 = plt.subplot(3, 1, 3)
+        ax3.axis('off')  # For text summary
+        
+        # Mean Reversion Parameter Heatmap
+        if mr_results:
+            mr_df = pd.DataFrame([
+                {'Window': r['Window'], 'Threshold': r['Threshold'], 'Sharpe_Ratio': r['Sharpe_Ratio']} 
+                for r in mr_results
+            ])
+            
+            sharpe_pivot = mr_df.pivot(index='Window', columns='Threshold', values='Sharpe_Ratio')
+            im1 = ax1.imshow(sharpe_pivot.values, cmap='RdYlGn', aspect='auto')
+            ax1.set_title('Mean Reversion: Parameter Heatmap', fontsize=11, pad=8)
+            ax1.set_xticks(range(len(sharpe_pivot.columns)))
+            ax1.set_xticklabels([f'{x:.1%}' for x in sharpe_pivot.columns], fontsize=8)
+            ax1.set_yticks(range(len(sharpe_pivot.index)))
+            ax1.set_yticklabels(sharpe_pivot.index, fontsize=8)
+            ax1.set_xlabel('Threshold', fontsize=9)
+            ax1.set_ylabel('Window', fontsize=9)
+            plt.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
+        
+        # Momentum Window Performance
+        if mom_results:
+            mom_df = pd.DataFrame([
+                {'Window': r['Window'], 'Sharpe_Ratio': r['Sharpe_Ratio']} 
+                for r in mom_results
+            ])
+            
+            bars = ax2.bar(mom_df['Window'], mom_df['Sharpe_Ratio'], color='steelblue', alpha=0.7, width=6)
+            ax2.set_title('Momentum: Window Optimization', fontsize=11, pad=8)
+            ax2.set_xlabel('Window Size (days)', fontsize=9)
+            ax2.set_ylabel('Sharpe Ratio', fontsize=9)
             ax2.grid(True, alpha=0.3, axis='y')
             
-            # Price with signals (Mean Reversion)
-            mr_data = best_mr['Data']
-            ax3.plot(mr_data.index, mr_data[f'Close_{self.ticker}'], label=f'{self.ticker} Price', color='black')
-            buy_signals = mr_data[mr_data['Position'] == 1]
-            sell_signals = mr_data[mr_data['Position'] == -1]
-            ax3.scatter(buy_signals.index, buy_signals[f'Close_{self.ticker}'], 
-                       marker='^', color='green', s=30, label='Buy', alpha=0.7)
-            ax3.scatter(sell_signals.index, sell_signals[f'Close_{self.ticker}'], 
-                       marker='v', color='red', s=30, label='Sell', alpha=0.7)
-            ax3.set_title('Mean Reversion Signals')
-            ax3.legend(fontsize=8)
-            ax3.grid(True, alpha=0.3)
-            
-            # Price with signals (Momentum)
-            mom_data = best_mom['Data']
-            ax4.plot(mom_data.index, mom_data[f'Close_{self.ticker}'], label=f'{self.ticker} Price', color='black')
-            buy_signals = mom_data[mom_data['Position'] == 1]
-            sell_signals = mom_data[mom_data['Position'] == -1]
-            ax4.scatter(buy_signals.index, buy_signals[f'Close_{self.ticker}'], 
-                       marker='^', color='green', s=30, label='Buy', alpha=0.7)
-            ax4.scatter(sell_signals.index, sell_signals[f'Close_{self.ticker}'], 
-                       marker='v', color='red', s=30, label='Sell', alpha=0.7)
-            ax4.set_title('Momentum Signals')
-            ax4.legend(fontsize=8)
-            ax4.grid(True, alpha=0.3)
+            # Highlight best parameter
+            if mom_best_params:
+                best_idx = mom_df[mom_df['Window'] == mom_best_params].index[0]
+                bars[best_idx].set_color('green')
+                bars[best_idx].set_alpha(0.9)
         
-        plt.tight_layout()
-        pdf.savefig(fig, bbox_inches='tight')
+        # Summary text without boxes
+        if mr_best_params and mom_best_params:
+            best_mr = next(r for r in mr_results if r['Window'] == mr_best_params[0] and r['Threshold'] == mr_best_params[1])
+            best_mom = next(r for r in mom_results if r['Window'] == mom_best_params)
+            
+            summary_text = f"OPTIMAL PARAMETERS:\n\n"
+            summary_text += f"Mean Reversion: Window={mr_best_params[0]}d, Threshold={mr_best_params[1]:.1%}, Sharpe={best_mr['Sharpe_Ratio']:.3f}\n"
+            summary_text += f"Momentum: Window={mom_best_params}d, Sharpe={best_mom['Sharpe_Ratio']:.3f}\n\n"
+            winner = "Momentum" if best_mom['Sharpe_Ratio'] > best_mr['Sharpe_Ratio'] else "Mean Reversion"
+            summary_text += f"RECOMMENDED: {winner} Strategy"
+            
+            ax3.text(0.1, 0.8, summary_text, transform=ax3.transAxes, fontsize=10, 
+                    verticalalignment='top', fontfamily='monospace')
+        
+        # Single column spacing
+        plt.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.05, hspace=0.4)
+        pdf.savefig(fig, dpi=150)
         plt.close(fig)
+    
+    def _create_insights_page(self, pdf, mr_results, mom_results, mr_best_params, mom_best_params):
+        """Create AI insights page (A4 format)."""
+        fig, ax = plt.subplots(figsize=(8.27, 11.69))  # A4 format
+        ax.axis('off')
+        
+        # Title
+        fig.suptitle(f'Market Behavior Analysis - {self.ticker}', fontsize=14, fontweight='bold', y=0.92)
+        
+        insights_text = ""
+        
+        if mr_best_params and mom_best_params:
+            best_mr = next(r for r in mr_results if r['Window'] == mr_best_params[0] and r['Threshold'] == mr_best_params[1])
+            best_mom = next(r for r in mom_results if r['Window'] == mom_best_params)
+            
+            # Determine winning strategy
+            winning_strategy = "Mean Reversion" if best_mr['Sharpe_Ratio'] > best_mom['Sharpe_Ratio'] else "Momentum"
+            
+            # Strategy comparison
+            insights_text += f"STRATEGY PERFORMANCE COMPARISON\n\n"
+            insights_text += f"Mean Reversion Results:\n"
+            insights_text += f"• Sharpe Ratio: {best_mr['Sharpe_Ratio']:.3f}\n"
+            insights_text += f"• Max Drawdown: {best_mr['Max_Drawdown']:.1%}\n"
+            insights_text += f"• Parameters: {mr_best_params[0]}d window, {mr_best_params[1]:.1%} threshold\n\n"
+            
+            insights_text += f"Momentum Results:\n"
+            insights_text += f"• Sharpe Ratio: {best_mom['Sharpe_Ratio']:.3f}\n"
+            insights_text += f"• Max Drawdown: {best_mom['Max_Drawdown']:.1%}\n"
+            insights_text += f"• Parameters: {mom_best_params}d window\n\n"
+            
+            insights_text += f"WINNER: {winning_strategy} Strategy\n\n"
+            
+            # AI-powered market behavior analysis
+            insights_text += f"AI MARKET BEHAVIOR ANALYSIS\n\n"
+            try:
+                import ai_utils
+                ai_analysis = ai_utils.generate_market_behavior_analysis(
+                    self.ticker, winning_strategy, 
+                    best_mr['Sharpe_Ratio'], best_mom['Sharpe_Ratio'],
+                    mr_best_params, mom_best_params,
+                    best_mr.get('Max_Drawdown'), best_mom.get('Max_Drawdown')
+                )
+                insights_text += ai_analysis
+            except Exception as e:
+                # Fallback to simple analysis
+                insights_text += f"Analysis based on backtest results:\n"
+                if winning_strategy == "Mean Reversion":
+                    insights_text += f"• {self.ticker} showed mean-reverting characteristics\n"
+                    insights_text += f"• Price movements tend to revert to average levels\n"
+                    insights_text += f"• Counter-trend strategies were effective"
+                else:
+                    insights_text += f"• {self.ticker} demonstrated trending behavior\n"
+                    insights_text += f"• Momentum strategies captured price trends\n"
+                    insights_text += f"• Trend-following approach was more successful"
+        
+        # Clean up formatting and display text
+        clean_text = insights_text.replace('**', '')  # Remove markdown bold markers
+        ax.text(0.1, 0.85, clean_text, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', fontfamily='serif', wrap=True)
+        
+        pdf.savefig(fig, dpi=150)
+        plt.close(fig)
+    
+    def _create_glossary_page(self, pdf):
+        """Create comprehensive glossary page with finance terms and formulas."""
+        fig, ax = plt.subplots(figsize=(8.27, 11.69))  # A4 format
+        ax.axis('off')
+        
+        # Title
+        fig.suptitle('Financial Terms & Formulas Glossary', fontsize=14, fontweight='bold', y=0.92)
+        
+        glossary_text = """
+TRADING STRATEGIES
+
+Mean Reversion Strategy
+• Concept: Assumes prices will return to their historical average over time
+• Method: Buy when price is below moving average, sell when above
+• Formula: Signal = (Price - Moving_Average) / Moving_Average
+• Why useful: Captures price "overshoots" and corrections in sideways markets
+
+Momentum Strategy  
+• Concept: Assumes prices will continue moving in the same direction
+• Method: Buy when price > moving average, sell when price < moving average
+• Formula: Signal = Price - Moving_Average
+• Why useful: Captures trending behavior and market momentum
+
+PERFORMANCE METRICS
+
+Sharpe Ratio
+• Formula: (Portfolio_Return - Risk_Free_Rate) / Portfolio_Volatility
+• Meaning: Risk-adjusted return measure
+• Why important: Higher ratio = better return per unit of risk taken
+• Interpretation: >1.0 is good, >2.0 is excellent
+
+Maximum Drawdown
+• Formula: (Peak_Value - Trough_Value) / Peak_Value
+• Meaning: Largest peak-to-trough decline in portfolio value
+• Why important: Measures worst-case scenario loss
+• Interpretation: Lower is better (less risk)
+
+Portfolio Value
+• Formula: Initial_Capital × (1 + Cumulative_Returns)
+• Meaning: Total value of investment over time
+• Why useful: Shows actual dollar growth of investment
+
+TECHNICAL PARAMETERS
+
+Window Size
+• Definition: Number of historical periods used for calculations
+• Usage: Moving averages, volatility calculations
+• Impact: Smaller = more sensitive, Larger = smoother signals
+• Typical range: 10-50 days for short-term strategies
+
+Threshold (Mean Reversion)
+• Definition: Percentage deviation from average to trigger trades
+• Formula: |Price - Moving_Average| / Moving_Average > Threshold
+• Impact: Lower = more trades, Higher = fewer but stronger signals
+• Typical range: 1%-5% for most assets
+
+RISK CONCEPTS
+
+Volatility
+• Formula: Standard deviation of returns
+• Meaning: Measure of price fluctuation intensity  
+• Why important: Higher volatility = higher risk and potential return
+
+Buy/Sell Signals
+• Definition: Automated trading recommendations based on strategy rules
+• Implementation: Generated when price crosses predetermined levels
+• Purpose: Remove emotion and provide systematic entry/exit points
+        """
+        
+        # Add glossary text with consistent font
+        ax.text(0.1, 0.85, glossary_text, transform=ax.transAxes, fontsize=9,
+                verticalalignment='top', fontfamily='serif')
+        
+        pdf.savefig(fig, dpi=150)
+        plt.close(fig)
+    
+
 
 def prompt_for_report_generation(report_type, results=None, mr_results=None, mom_results=None, 
                                 mr_best_params=None, mom_best_params=None, ticker=None):

@@ -18,6 +18,9 @@ tzdata==2025.2
 # Additional utilities
 six==1.17.0
 
+# PDF generation
+reportlab==4.2.5
+
 # AI/ML APIs
 google-generativeai==0.8.3
 transformers==4.46.3

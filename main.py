@@ -12,6 +12,7 @@ import data_loader
 import parameter_explorer
 import plotting
 import report_generator
+import pdf_generator
 import finance_utils
 
 def main():

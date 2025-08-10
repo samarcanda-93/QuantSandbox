@@ -59,8 +59,13 @@ def handle_download_failure(ticker):
     if suggestions:
         print(f"\nDid you mean one of these?")
         for i, suggestion in enumerate(suggestions[:5], 1):
-            print(f"  {i}. {suggestion}")
-        print(f"\nTry: python main.py {suggestions[0]}")
+            if isinstance(suggestion, dict):
+                label = f"{suggestion.get('ticker')} - {suggestion.get('name') or 'Name unavailable'}"
+            else:
+                label = str(suggestion)
+            print(f"  {i}. {label}")
+        first = suggestions[0]['ticker'] if isinstance(suggestions[0], dict) else suggestions[0]
+        print(f"\nTry: python main.py {first}")
     else:
         print("\nPossible reasons:")
         print("  - Ticker doesn't exist or is delisted")

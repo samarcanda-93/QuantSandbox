@@ -301,13 +301,63 @@ The script generates multiple visualization plots:
 3. Momentum strategy signals with different windows (2x2 subplots)
 4. Momentum portfolio evolution (2x2 subplots)
 
+## Trading Model & Assumptions
+
+### Portfolio Simulation Details
+The backtesting system uses a simplified trading model:
+
+- **Initial Capital**: $100 starting investment
+- **Position Sizing**: All-in/all-out approach
+  - **Buy Signal**: Invest entire available cash (100% allocation)
+  - **Sell Signal**: Liquidate entire position (convert to cash)
+  - **Hold Signal**: Maintain current position (no action)
+
+### Trading Logic
+1. **Mean Reversion Strategy**: 
+   - Buy when price falls below (moving average - threshold%)
+   - Sell when price rises above (moving average + threshold%)
+2. **Momentum Strategy**:
+   - Buy when price crosses above moving average
+   - Sell when price crosses below moving average
+
+### Important Limitations
+
+**⚠️ Simplifications in Current Model:**
+- **No Transaction Costs**: Assumes zero brokerage fees, commissions, or spreads
+- **No Slippage**: Assumes perfect execution at exact signal prices
+- **No Market Impact**: Assumes orders don't affect market prices
+- **Binary Position Sizing**: Only 0% or 100% allocation (no partial positions)
+- **Instant Execution**: Assumes immediate fills without delays
+- **Perfect Liquidity**: Assumes ability to buy/sell any amount instantly
+- **No Margin Requirements**: No borrowing costs or margin calls
+- **Tax Ignorance**: No consideration of capital gains taxes or wash sale rules
+
+**📊 Real-World Impact:**
+- **Transaction costs** typically range from 0.01% to 0.5% per trade
+- **Bid-ask spreads** can reduce returns, especially for frequent trading
+- **Market gaps** may cause execution at worse prices than signals indicate
+- **Position sizing** in practice should consider risk management and diversification
+- **Regulatory constraints** like pattern day trading rules may apply
+
+**🎯 Educational Purpose:**
+This simplified model is designed for:
+- Understanding strategy logic and parameter sensitivity
+- Comparing relative performance between different approaches
+- Learning quantitative finance concepts without complexity
+
+**Real trading would require:**
+- Proper position sizing and risk management
+- Transaction cost modeling
+- Slippage and market impact considerations
+- Regulatory compliance
+- Professional risk management tools
+
 ## Notes
 
 - Strategies include proper look-ahead bias prevention
-- Portfolio simulation uses simple position sizing (all-in/all-out)
-- No transaction costs or slippage modeling
 - Results are for educational/research purposes only
 - Suggestions shown in console and PDFs are informational and **not financial advice**
+- Always consult qualified financial advisors before making real investment decisions
 
 ## Future Enhancements
 
@@ -316,3 +366,10 @@ The script generates multiple visualization plots:
 - Add additional performance metrics (Sortino, Calmar, hit rate, exposure, etc.)
 - Add backtesting statistics and reporting
 - Support for multiple assets and portfolio optimization
+- **Custom Ticker Recognition Model**: Train a specialized machine learning model for improved ticker suggestion accuracy
+  - Fine-tune language models (BERT/DistilBERT) on company name → ticker mappings
+  - Create embedding-based similarity matching using financial datasets
+  - Incorporate multi-modal features (sector, market cap, geographic data)
+  - Train on comprehensive datasets from SEC EDGAR, exchange listings, and user interaction logs
+  - Implement incremental learning to continuously improve from real usage patterns
+  - Handle regional exchanges and edge cases better than current general-purpose AI APIs
