@@ -26,44 +26,242 @@ A Python-based quantitative trading sandbox for backtesting and analyzing algori
 
 ## Installation
 
-1. Clone or download this repository
-2. Install required dependencies:
+### Prerequisites
+
+You'll need Python 3.8 or higher installed on your system.
+
+### 1. Clone or download this repository
+
 ```bash
+git clone <repository-url>
+cd QuantSandbox
+```
+
+### 2. Install dependencies
+
+#### Windows
+
+```cmd
+# Create and activate virtual environment (recommended)
+python -m venv venv
+venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-## Usage
+#### Linux (Debian/Ubuntu)
 
-Run the main sandbox script:
 ```bash
-python sandbox.py
+# Install Python and pip if not already installed
+sudo apt update
+sudo apt install python3 python3-pip python3-venv
+
+# Create and activate virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-This will:
-- Download BTC-USD data from Yahoo Finance
+#### Linux (RedHat/CentOS/Fedora)
+
+```bash
+# Install Python and pip if not already installed (CentOS/RHEL 8+)
+sudo dnf install python3 python3-pip python3-venv
+
+# For older CentOS/RHEL 7
+# sudo yum install python3 python3-pip
+
+# Create and activate virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 3. API Setup
+
+This project now supports AI-powered features using Gemini and Hugging Face APIs.
+
+#### Google Gemini API
+
+1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Create a new API key
+3. Set the environment variable:
+
+**Windows (Command Prompt):**
+```cmd
+set GOOGLE_API_KEY=your_api_key_here
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:GOOGLE_API_KEY="your_api_key_here"
+```
+
+**Windows (System Environment Variables):**
+1. Press `Win + X` and select "System"
+2. Click "Advanced system settings"
+3. Click "Environment Variables"
+4. Under "User variables" or "System variables", click "New"
+5. Variable name: `GOOGLE_API_KEY`
+6. Variable value: `your_api_key_here`
+
+**Linux:**
+```bash
+export GOOGLE_API_KEY=your_api_key_here
+```
+
+**Linux (Persistent - add to ~/.bashrc or ~/.profile):**
+```bash
+echo 'export GOOGLE_API_KEY=your_api_key_here' >> ~/.bashrc
+source ~/.bashrc
+```
+
+#### Hugging Face API
+
+1. Visit [Hugging Face](https://huggingface.co/settings/tokens)
+2. Create a new access token
+3. Set the environment variable:
+
+**Windows (Command Prompt):**
+```cmd
+set HUGGINGFACE_API_KEY=your_token_here
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:HUGGINGFACE_API_KEY="your_token_here"
+```
+
+**Windows (System Environment Variables):**
+1. Press `Win + X` and select "System"
+2. Click "Advanced system settings"
+3. Click "Environment Variables"
+4. Under "User variables" or "System variables", click "New"
+5. Variable name: `HUGGINGFACE_API_KEY`
+6. Variable value: `your_token_here`
+
+**Linux:**
+```bash
+export HUGGINGFACE_API_KEY=your_token_here
+```
+
+**Linux (Persistent - add to ~/.bashrc or ~/.profile):**
+```bash
+echo 'export HUGGINGFACE_API_KEY=your_token_here' >> ~/.bashrc
+source ~/.bashrc
+```
+
+For persistent environment variables, add them to your system's environment configuration or shell profile.
+
+### 4. API Testing and Debugging
+
+The project includes several debugging scripts to test API connectivity:
+
+#### Google Gemini API Testing
+```bash
+python tests/test_gemini_api.py
+```
+Tests the Gemini API connection directly and verifies your API key is working.
+
+#### Hugging Face API Testing
+```bash
+python tests/test_huggingface_api.py
+```
+Tests Hugging Face API connectivity and ticker suggestion functionality.
+
+#### Hugging Face Error Testing
+```bash
+python tests/test_huggingface_errors.py
+```
+Tests various error scenarios for the Hugging Face API to ensure robust error handling.
+
+#### AI Integration Testing
+```bash
+python tests/test_ai_integration.py INVALID_TICKER
+```
+Tests the integrated AI ticker suggestion system with a specific ticker.
+
+These debugging tools are helpful for:
+- Verifying API keys are correctly configured
+- Testing API connectivity and response times
+- Debugging ticker suggestion accuracy
+- Understanding error handling behavior
+
+## Usage
+
+### Basic Usage
+
+Run the main application:
+```bash
+python main.py
+```
+
+### Custom Ticker
+
+You can specify any ticker symbol as a command line argument:
+```bash
+python main.py AAPL
+python main.py TSLA
+python main.py ETH-USD
+python main.py MSFT
+```
+
+The main.py script offers two analysis modes:
+1. **Basic comparison** - Quick Sharpe ratio comparison of strategies
+2. **Full exploration** - Complete parameter optimization with visualizations
+
+The script will:
+- Download historical data for the specified ticker from Yahoo Finance
 - Run both strategies with parameter exploration
 - Generate visualization plots showing:
   - Strategy signals and price action
   - Portfolio value evolution
   - Parameter sensitivity analysis
+- If the ticker fails to download, AI-powered suggestions will be provided (if APIs are configured)
 
 ## File Structure
 
-- `sandbox.py` - Main execution script with parameter exploration
+### Core Application
+- `main.py` - Main execution script with interactive interface and modular architecture
+
+### Modular Components  
+- `data_loader.py` - Data download, validation, and preprocessing
+- `parameter_explorer.py` - Strategy parameter optimization and testing
+- `plotting.py` - Modular visualization and charting functions
 - `strategies.py` - Strategy implementations (momentum and mean reversion)
-- `utils.py` - Portfolio simulation utilities
+- `finance_utils.py` - Portfolio simulation, risk metrics, and financial calculations
+- `ai_utils.py` - AI-powered ticker suggestions and API integrations
+
+### Configuration & Testing
 - `requirements.txt` - Python dependencies
+- `tests/` - API testing and debugging scripts
+  - `test_gemini_api.py` - Google Gemini API testing
+  - `test_huggingface_api.py` - Hugging Face API testing
+  - `test_huggingface_errors.py` - Hugging Face error scenario testing
+  - `test_ai_integration.py` - Integrated AI ticker suggestion testing
 
 ## Configuration
 
-Key parameters you can modify in `sandbox.py`:
+The application provides two analysis modes:
 
-- **Ticker**: Change `ticker = 'BTC-USD'` to any Yahoo Finance symbol
-- **Date Range**: Modify `start` and `end` parameters in `yf.download()`
-- **Strategy Parameters**: 
-  - Momentum windows: `[10, 20, 30, 50]`
-  - Mean reversion windows: `[10, 20, 30, 50]`
-  - Mean reversion thresholds: `[0.01, 0.02, 0.03, 0.05]`
+### Basic Comparison Mode
+- **Interactive Parameter Selection**: Choose custom window sizes and thresholds
+- **Fast Results**: Quick strategy comparison with Sharpe ratios
+- **Optional Visualization**: Simple comparison chart
+
+### Full Exploration Mode  
+- **Comprehensive Grid Search**: Tests multiple parameter combinations
+- **Advanced Visualizations**: Strategy signals and portfolio evolution plots
+- **Best Parameter Discovery**: Automatically finds optimal configurations
+
+**Default Parameter Ranges:**
+- **Momentum Strategy**: Windows from 5 to 200 periods
+- **Mean Reversion Strategy**: Windows from 5 to 200 periods, thresholds from 0.1% to 10%
 
 ## Output
 
